@@ -4,9 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
 import 'package:flutter/services.dart';
 import "package:expressions/expressions.dart";
+import 'shared_preferences_helper.dart';
 
 class CustomTable extends StatefulWidget {
-  const CustomTable({super.key});
+  final String tableThickness;
+  final String categoryName;
+  final String woodType;
+  final String partyName;
+  const CustomTable(
+      {super.key,
+      required this.tableThickness,
+      required this.categoryName,
+      required this.woodType,
+      required this.partyName});
 
   @override
   State<CustomTable> createState() => _CustomTableState();
@@ -14,19 +24,18 @@ class CustomTable extends StatefulWidget {
 
 class _CustomTableState extends State<CustomTable> {
   LinkedScrollControllerGroup controllerGroup = LinkedScrollControllerGroup();
-
   ScrollController? headerScrollController;
   ScrollController? dataScrollController;
 
-  // List of FocusNodes for the TextFields in the data table
   List<List<FocusNode>> focusNodes = [];
-
-  // List of TextEditingControllers for each cell
   List<List<TextEditingController>> controllers = [];
+  List<List<String>> originalExpressions = [];
 
-  // Variables to track the currently focused row and column
   int? focusedRowIndex;
   int? focusedColumnIndex;
+
+  String get tableKey =>
+      "${widget.tableThickness}_${widget.categoryName}_${widget.woodType}_${widget.partyName}";
 
   @override
   void initState() {
@@ -35,9 +44,9 @@ class _CustomTableState extends State<CustomTable> {
     dataScrollController = controllerGroup.addAndGet();
     _initializeFocusNodes();
     _initializeControllers();
+    _loadTableData(); // Load data from SharedPreferences when the widget is initialized
   }
 
-  // Initialize FocusNodes for each row and column
   void _initializeFocusNodes() {
     focusNodes = List.generate(14, (rowIndex) {
       return List.generate(
@@ -46,7 +55,6 @@ class _CustomTableState extends State<CustomTable> {
       );
     });
 
-    // Add listeners to update focusedRowIndex and focusedColumnIndex
     for (int rowIndex = 0; rowIndex < focusNodes.length; rowIndex++) {
       for (int colIndex = 0;
           colIndex < focusNodes[rowIndex].length;
@@ -56,6 +64,10 @@ class _CustomTableState extends State<CustomTable> {
             if (focusNodes[rowIndex][colIndex].hasFocus) {
               focusedRowIndex = rowIndex;
               focusedColumnIndex = colIndex;
+              if (controllers[rowIndex][colIndex].text.contains('(')) {
+                controllers[rowIndex][colIndex].text =
+                    originalExpressions[rowIndex][colIndex];
+              }
             }
           });
         });
@@ -63,34 +75,116 @@ class _CustomTableState extends State<CustomTable> {
     }
   }
 
-  // Initialize TextEditingControllers for each cell
   void _initializeControllers() {
     controllers = List.generate(14, (rowIndex) {
       return List.generate(
-        TableDataHelper.kTableColumnsList.length -
-            1, // Exclude the first column
+        TableDataHelper.kTableColumnsList.length - 1,
         (colIndex) => TextEditingController(),
+      );
+    });
+    originalExpressions = List.generate(14, (rowIndex) {
+      return List.generate(
+        TableDataHelper.kTableColumnsList.length - 1,
+        (colIndex) => "",
       );
     });
   }
 
-  @override
-  void dispose() {
-    // Dispose of FocusNodes and TextEditingControllers to prevent memory leaks
-    for (var row in focusNodes) {
-      for (var focusNode in row) {
-        focusNode.dispose();
+  Future<void> _loadTableData() async {
+    List<List<String>> savedData =
+        await SharedPreferencesHelper.getTableData(tableKey);
+    if (savedData.isNotEmpty) {
+      // If data exists in SharedPreferences, load it into controllers
+      for (int rowIndex = 0; rowIndex < savedData.length; rowIndex++) {
+        for (int colIndex = 0;
+            colIndex < savedData[rowIndex].length;
+            colIndex++) {
+          controllers[rowIndex][colIndex].text = savedData[rowIndex][colIndex];
+        }
       }
     }
-    for (var row in controllers) {
-      for (var controller in row) {
-        controller.dispose();
-      }
-    }
-    super.dispose();
   }
 
-  // Function to handle arithmetic calculation based on the input text
+  Future<bool> _onBackPressed(BuildContext context) async {
+    // Show the dialog and wait for user response
+    return await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Exit'),
+          content: const Text('Are you sure you want to exit?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                // User tapped the cancel button, pop the dialog and return false
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: const Text('Exit'),
+              onPressed: () {
+                // User tapped the exit button, pop the dialog and return true
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _saveTableData() async {
+    List<List<String>> tableData = List.generate(14, (rowIndex) {
+      return List.generate(
+        TableDataHelper.kTableColumnsList.length - 1,
+        (colIndex) => controllers[rowIndex][colIndex].text,
+      );
+    });
+    await SharedPreferencesHelper.saveTableData(tableData, tableKey);
+  }
+
+  void _showConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Clear All Data'),
+          content: Text(
+              'Are you sure you want to clear all the data? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog without clearing
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.black38)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                _clearData(); // Proceed to clear the data
+              },
+              child: Text('Clear', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _clearData() async {
+    await SharedPreferencesHelper.clearTableData(tableKey);
+    setState(() {
+      // Reset the controllers to empty
+      controllers = List.generate(14, (rowIndex) {
+        return List.generate(
+          TableDataHelper.kTableColumnsList.length - 1,
+          (colIndex) => TextEditingController(),
+        );
+      });
+    });
+  }
+
   void _handleCalculation(int rowIndex, int colIndex) {
     String enteredText = controllers[rowIndex][colIndex].text;
 
@@ -106,6 +200,8 @@ class _CustomTableState extends State<CustomTable> {
           final evaluator = ExpressionEvaluator();
           final result = evaluator.eval(expression, {});
 
+          // Store the original expression and calculated result
+          originalExpressions[rowIndex][colIndex] = trimmedText;
           controllers[rowIndex][colIndex].text = "$result ($trimmedText)";
         } else {
           controllers[rowIndex][colIndex].text = "Invalid Expression";
@@ -116,7 +212,6 @@ class _CustomTableState extends State<CustomTable> {
     }
   }
 
-// Function to check if the expression is valid
   bool _isValidExpression(String expression) {
     final validExpression = RegExp(r'^[\d+\-*/().\s]+$');
     return validExpression.hasMatch(expression);
@@ -126,7 +221,26 @@ class _CustomTableState extends State<CustomTable> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("CFT Table"),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Text("${widget.tableThickness}_",
+                style: TextStyle(color: Colors.black)),
+            Text("${widget.categoryName}_",
+                style: TextStyle(color: Colors.black)),
+            Text(widget.woodType, style: TextStyle(color: Colors.black)),
+          ],
+        ),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.clear_all),
+            onPressed: () {
+              _showConfirmationDialog(context); // Show confirmation dialog
+            },
+            // Clear the data when the button is pressed
+          ),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -237,23 +351,36 @@ class _CustomTableState extends State<CustomTable> {
                                               focusNode: focusNodes[index]
                                                   [colIndex],
                                               decoration: InputDecoration(
-                                                border: InputBorder.none,
-                                              ),
+                                                  border: InputBorder.none),
                                               textAlign: TextAlign.center,
                                               textInputAction:
                                                   TextInputAction.next,
+                                              onChanged: (_) {
+                                                _saveTableData(); // Automatically save data when text changes
+                                              },
                                               onSubmitted: (_) {
                                                 _handleCalculation(
                                                     index, colIndex);
                                                 _moveFocus(index, colIndex);
                                               },
+                                              onTap: () {
+                                                if (controllers[index][colIndex]
+                                                    .text
+                                                    .contains('(')) {
+                                                  controllers[index][colIndex]
+                                                          .text =
+                                                      originalExpressions[index]
+                                                          [colIndex];
+                                                }
+                                              },
                                               keyboardType: TextInputType
-                                                  .text, // Use the text keyboard
+                                                  .numberWithOptions(
+                                                      decimal: true,
+                                                      signed: true),
                                               inputFormatters: [
                                                 FilteringTextInputFormatter
-                                                    .allow(
-                                                  RegExp(r'^[\d+\-*/().]*$'),
-                                                ),
+                                                    .allow(RegExp(
+                                                        r'^[\d\+\-\*\/\(\)\s]+$')),
                                               ],
                                             ),
                                           ),
@@ -264,8 +391,6 @@ class _CustomTableState extends State<CustomTable> {
                                 );
                               },
                             ),
-                            headingRowColor:
-                                WidgetStatePropertyAll(Colors.teal.shade200),
                           ),
                         ),
                       ),
@@ -274,7 +399,7 @@ class _CustomTableState extends State<CustomTable> {
                 ],
               ),
             ),
-            tableHeader()
+            tableHeader(),
           ],
         ),
       ),
@@ -336,6 +461,22 @@ class _CustomTableState extends State<CustomTable> {
         ))
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    // Dispose of controllers and focus nodes to prevent memory leaks
+    for (var row in controllers) {
+      for (var controller in row) {
+        controller.dispose();
+      }
+    }
+    for (var row in focusNodes) {
+      for (var focusNode in row) {
+        focusNode.dispose();
+      }
+    }
+    super.dispose();
   }
 
   void _moveFocus(int rowIndex, int colIndex) {
