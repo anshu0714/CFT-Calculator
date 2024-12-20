@@ -93,13 +93,4 @@ class SharedPreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(tableKey);
   }
-
-  static Future<List<Map<String, dynamic>>> getSheetsData(
-      String partyName) async {
-    List<Map<String, dynamic>> sheetsData = []; // Example data format
-    // Fetch data from shared preferences here and decode it
-    // Example:
-    // sheetsData = await someSharedPrefInstance.get('party_sheets_$partyName');
-    return sheetsData;
-  }
 }
