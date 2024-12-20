@@ -90,48 +90,24 @@ class _CustomTableState extends State<CustomTable> {
     });
   }
 
-  Future<void> _loadTableData() async {
-    List<List<String>> savedData =
-        await SharedPreferencesHelper.getTableData(tableKey);
-    if (savedData.isNotEmpty) {
-      // If data exists in SharedPreferences, load it into controllers
-      for (int rowIndex = 0; rowIndex < savedData.length; rowIndex++) {
+  void _loadTableData() async {
+    List<List<Map<String, dynamic>>> savedDataWithMetadata =
+        await SharedPreferencesHelper.getTableDataWithMetadata(tableKey);
+
+    if (savedDataWithMetadata.isNotEmpty) {
+      for (int rowIndex = 0;
+          rowIndex < savedDataWithMetadata.length;
+          rowIndex++) {
         for (int colIndex = 0;
-            colIndex < savedData[rowIndex].length;
+            colIndex < savedDataWithMetadata[rowIndex].length;
             colIndex++) {
-          controllers[rowIndex][colIndex].text = savedData[rowIndex][colIndex];
+          // Extract only the value from the saved metadata
+          String cellValue =
+              savedDataWithMetadata[rowIndex][colIndex]['value'] ?? '';
+          controllers[rowIndex][colIndex].text = cellValue;
         }
       }
     }
-  }
-
-  Future<bool> _onBackPressed(BuildContext context) async {
-    // Show the dialog and wait for user response
-    return await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Exit'),
-          content: const Text('Are you sure you want to exit?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                // User tapped the cancel button, pop the dialog and return false
-                Navigator.of(context).pop(false);
-              },
-            ),
-            TextButton(
-              child: const Text('Exit'),
-              onPressed: () {
-                // User tapped the exit button, pop the dialog and return true
-                Navigator.of(context).pop(true);
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _saveTableData() async {
@@ -141,7 +117,47 @@ class _CustomTableState extends State<CustomTable> {
         (colIndex) => controllers[rowIndex][colIndex].text,
       );
     });
-    await SharedPreferencesHelper.saveTableData(tableData, tableKey);
+    await SharedPreferencesHelper.saveTableDataForDisplay(tableData, tableKey);
+  }
+
+  void _saveTableDataWithLengthAndWidth() async {
+    List<List<Map<String, dynamic>>> tableDataWithLengthWidth =
+        List.generate(14, (rowIndex) {
+      return List.generate(
+        TableDataHelper.kTableColumnsList.length - 1,
+        (colIndex) {
+          String cellValue = controllers[rowIndex][colIndex].text;
+          if (cellValue.isNotEmpty) {
+            double length = 1.5 + (rowIndex * 0.5);
+
+            String? columnTitle =
+                TableDataHelper.kTableColumnsList[colIndex + 1].title;
+            double width = 0.0;
+
+            if (columnTitle != null) {
+              width = double.tryParse(columnTitle) ?? 0.0;
+            }
+
+            return {
+              'value': cellValue,
+              'length': length,
+              'width': width,
+            };
+          } else {
+            return {
+              'value': '',
+              'length': 0.0,
+              'width': 0.0,
+            };
+          }
+        },
+      );
+    });
+
+    // Now save this table data into SharedPreferences
+    await SharedPreferencesHelper.saveTableDataWithMetadata(
+        tableKey, tableDataWithLengthWidth);
+    print(tableDataWithLengthWidth);
   }
 
   void _showConfirmationDialog(BuildContext context) {
@@ -357,6 +373,7 @@ class _CustomTableState extends State<CustomTable> {
                                                   TextInputAction.next,
                                               onChanged: (_) {
                                                 _saveTableData(); // Automatically save data when text changes
+                                                _saveTableDataWithLengthAndWidth();
                                               },
                                               onSubmitted: (_) {
                                                 _handleCalculation(

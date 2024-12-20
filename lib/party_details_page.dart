@@ -1,8 +1,8 @@
 import 'package:cft_calculator/load_page.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart'; 
-import 'models.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'models.dart';
 
 class PartyDetailsPage extends StatelessWidget {
   final Party party;
@@ -26,15 +26,13 @@ class PartyDetailsPage extends StatelessWidget {
   // Method to save call details to local storage
   Future<void> _saveCallDetails(String number) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString(
-        'last_called_number_${party.name}', number);
+    prefs.setString('last_called_number_${party.name}', number);
   }
 
   // Method to get saved call details from local storage
   Future<String?> _getLastCalledNumber() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs
-        .getString('last_called_number_${party.name}'); 
+    return prefs.getString('last_called_number_${party.name}');
   }
 
   @override
