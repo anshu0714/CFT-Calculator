@@ -1,3 +1,5 @@
+import 'package:cft_calculator/shared_preferences_helper.dart';
+import 'package:cft_calculator/sort_and_load_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // For encoding and decoding JSON
@@ -45,11 +47,23 @@ class LoadPageState extends State<LoadPage> {
     }
   }
 
-  void _removeSheet(int index) {
+  void _removeSheet(int index) async {
+    final CustomTable sheet = sheets[index] as CustomTable;
+    final String tableKey =
+        "${widget.partyName}_${sheet.categoryName}_${sheet.tableThickness}";
+
     setState(() {
       sheets.removeAt(index);
     });
-    _saveSheets(); // Save the updated list of sheets
+
+    // Clear the associated table data from SharedPreferences
+    await SharedPreferencesHelper.clearTableData(tableKey);
+
+    // Remove the table key from the list of table keys
+    await SharedPreferencesHelper.removeTableKey(tableKey);
+
+    // Save the updated list of sheets
+    _saveSheets();
   }
 
   // Save sheets to SharedPreferences using the party name as a key
@@ -177,7 +191,41 @@ class LoadPageState extends State<LoadPage> {
             right: 20,
             child: ElevatedButton(
               onPressed: () {
-                
+                // Check if there are any sheets in the list
+                if (sheets.isNotEmpty) {
+                  // Merge data from all sheets into a single list
+                  List<Map<String, String>> mergedSheetData =
+                      sheets.map((sheet) {
+                    return {
+                      'thickness': (sheet as CustomTable).tableThickness,
+                      'category': (sheet).categoryName,
+                      'woodType': (sheet).woodType,
+                      'partyName':
+                          widget.partyName, // Add the party name if needed
+                    };
+                  }).toList();
+
+                  // Pass the merged data to SortAndLoadPage
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SortAndLoadPage(
+                        mergedSheetData:
+                            mergedSheetData, // Pass the merged data
+                      ),
+                    ),
+                  ).then((_) {
+                    // Trigger a rebuild after returning from SortAndLoadPage
+                    setState(() {
+                      _loadSheets();
+                    });
+                  });
+                } else {
+                  // Optionally show a message if there are no sheets added
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Please add a sheet first!")),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,

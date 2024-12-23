@@ -45,6 +45,11 @@ class _CustomTableState extends State<CustomTable> {
     _initializeFocusNodes();
     _initializeControllers();
     _loadTableData(); // Load data from SharedPreferences when the widget is initialized
+    _saveTableKey();
+  }
+
+  void _saveTableKey() async {
+    await SharedPreferencesHelper.addTableKey(tableKey);
   }
 
   void _initializeFocusNodes() {
@@ -133,6 +138,7 @@ class _CustomTableState extends State<CustomTable> {
             String? columnTitle =
                 TableDataHelper.kTableColumnsList[colIndex + 1].title;
             double width = 0.0;
+            double thickness = double.tryParse(widget.tableThickness) ?? 0.0;
 
             if (columnTitle != null) {
               width = double.tryParse(columnTitle) ?? 0.0;
@@ -142,22 +148,36 @@ class _CustomTableState extends State<CustomTable> {
               'value': cellValue,
               'length': length,
               'width': width,
+              'thickness': thickness,
+              'category': widget.categoryName, // Add category name to metadata
+              'woodType': widget.woodType, // Add wood type to metadata
             };
           } else {
             return {
               'value': '',
               'length': 0.0,
               'width': 0.0,
+              'thickness': 0.0,
+              'category': widget.categoryName, // Default category name
+              'woodType': widget.woodType, // Default wood type
             };
           }
         },
       );
     });
 
+    // Filter out the data that has a non-empty 'value'
+    List<List<Map<String, dynamic>>> nonEmptyData = tableDataWithLengthWidth
+        .map((row) => row.where((cell) => cell['value'] != '').toList())
+        .where((row) => row.isNotEmpty)
+        .toList();
+
+    // Print only the non-empty data
+    print(nonEmptyData);
+
     // Now save this table data into SharedPreferences
     await SharedPreferencesHelper.saveTableDataWithMetadata(
         tableKey, tableDataWithLengthWidth);
-    print(tableDataWithLengthWidth);
   }
 
   void _showConfirmationDialog(BuildContext context) {
@@ -190,6 +210,8 @@ class _CustomTableState extends State<CustomTable> {
 
   void _clearData() async {
     await SharedPreferencesHelper.clearTableData(tableKey);
+    await SharedPreferencesHelper.removeTableKey(tableKey); // Remove key
+
     setState(() {
       // Reset the controllers to empty
       controllers = List.generate(14, (rowIndex) {

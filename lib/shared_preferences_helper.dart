@@ -10,9 +10,8 @@ class SharedPreferencesHelper {
     // Filter out empty or null cells before saving
     List<List<Map<String, dynamic>>> validatedData = tableData.map((row) {
       return row.where((cell) {
-        // Only include non-null and non-empty cells
         if ((cell is String && cell.isEmpty)) {
-          return false; // Skip empty or null cells
+          return false; 
         }
         return true; // Include valid cells
       }).toList();
@@ -23,7 +22,6 @@ class SharedPreferencesHelper {
     await prefs.setString(tableKey, jsonData);
   }
 
-  // Retrieve the full table data with metadata (e.g., length, width, etc.)
   // Retrieve the full table data with metadata (e.g., length, width, etc.)
   static Future<List<List<Map<String, dynamic>>>> getTableDataWithMetadata(
       String tableKey) async {
@@ -93,4 +91,28 @@ class SharedPreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(tableKey);
   }
+  // Add table key to the list
+static Future<void> addTableKey(String tableKey) async {
+  final prefs = await SharedPreferences.getInstance();
+  List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
+  if (!tableKeys.contains(tableKey)) {
+    tableKeys.add(tableKey);
+    await prefs.setStringList('table_keys', tableKeys);
+  }
+}
+
+// Retrieve all saved table keys
+static Future<List<String>> getTableKeys() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getStringList('table_keys') ?? [];
+}
+
+// Remove a table key from the list
+static Future<void> removeTableKey(String tableKey) async {
+  final prefs = await SharedPreferences.getInstance();
+  List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
+  tableKeys.remove(tableKey);
+  await prefs.setStringList('table_keys', tableKeys);
+}
+
 }
