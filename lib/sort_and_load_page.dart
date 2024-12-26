@@ -6,9 +6,9 @@ class SortAndLoadPage extends StatefulWidget {
   final List<Map<String, String>> mergedSheetData;
 
   const SortAndLoadPage({
-    Key? key,
+    super.key,
     required this.mergedSheetData,
-  }) : super(key: key);
+  });
 
   @override
   SortAndLoadPageState createState() => SortAndLoadPageState();
@@ -40,27 +40,25 @@ class SortAndLoadPageState extends State<SortAndLoadPage> {
       List<String> matchingKeys =
           allKeys.where((key) => key.contains(partyName)).toList();
       List<Map<String, dynamic>> aggregatedData = [];
-      Set<String> woodSet = Set();
-      Set<String> categorySet = Set();
+      Set<String> woodSet = {};
+      Set<String> categorySet = {};
 
       for (String key in matchingKeys) {
         List<List<Map<String, dynamic>>>? loadedData =
             await SharedPreferencesHelper.getTableDataWithMetadata(key);
-        if (loadedData != null) {
-          for (var row in loadedData) {
-            for (var cell in row) {
-              if (cell['value'] != null && cell['value'] != '') {
-                aggregatedData.add({
-                  'length': cell['length'],
-                  'width': cell['width'],
-                  'thickness': cell['thickness'],
-                  'value': cell['value'],
-                  'woodType': cell['woodType'], // Assuming wood type is stored
-                  'category': cell['category'], // Assuming category is stored
-                });
-                woodSet.add(cell['woodType']);
-                categorySet.add(cell['category']);
-              }
+        for (var row in loadedData) {
+          for (var cell in row) {
+            if (cell['value'] != null && cell['value'] != '') {
+              aggregatedData.add({
+                'length': cell['length'],
+                'width': cell['width'],
+                'thickness': cell['thickness'],
+                'value': cell['value'],
+                'woodType': cell['woodType'],
+                'category': cell['category'],
+              });
+              woodSet.add(cell['woodType']);
+              categorySet.add(cell['category']);
             }
           }
         }
@@ -73,6 +71,7 @@ class SortAndLoadPageState extends State<SortAndLoadPage> {
         selectedStartLength = getAvailableLengths().isNotEmpty
             ? getAvailableLengths().first
             : null;
+        selectedWoodType = woodTypes.isNotEmpty ? woodTypes.first : null;
       });
     }
   }
@@ -291,11 +290,11 @@ class SortAndLoadPageState extends State<SortAndLoadPage> {
               padding: const EdgeInsets.all(8.0),
               child: TextField(
                 controller: frameNameController,
-                decoration: InputDecoration(labelText: "Frame Name"),
+                decoration: InputDecoration(labelText: "Name"),
               ),
             ),
 
-          ElevatedButton(onPressed: addFrame, child: Text("Add Frame")),
+          ElevatedButton(onPressed: addFrame, child: Text("Add")),
           // Display frames
           Expanded(
             child: frames.isEmpty

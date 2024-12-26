@@ -11,13 +11,12 @@ class SharedPreferencesHelper {
     List<List<Map<String, dynamic>>> validatedData = tableData.map((row) {
       return row.where((cell) {
         if ((cell is String && cell.isEmpty)) {
-          return false; 
+          return false;
         }
-        return true; // Include valid cells
+        return true;
       }).toList();
     }).toList();
 
-    // Convert to JSON and save only non-empty data
     String jsonData = jsonEncode(validatedData);
     await prefs.setString(tableKey, jsonData);
   }
@@ -39,11 +38,11 @@ class SharedPreferencesHelper {
               if (cell is Map<String, dynamic>) {
                 return cell;
               } else {
-                return <String, dynamic>{}; // Empty map if invalid
+                return <String, dynamic>{};
               }
             }).toList();
           } else {
-            return <Map<String, dynamic>>[]; // Empty row if invalid
+            return <Map<String, dynamic>>[];
           }
         }).toList();
       } catch (e) {
@@ -76,13 +75,11 @@ class SharedPreferencesHelper {
           return List<String>.from(row.map((e) => e.toString()));
         }).toList();
       } catch (e) {
-        // Handle decoding error if data format is corrupted
         print("Error decoding display data: $e");
         return [];
       }
     }
 
-    // Return an empty table or default structure if no data exists
     return List.generate(14, (index) => List.filled(10, ""));
   }
 
@@ -91,28 +88,28 @@ class SharedPreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(tableKey);
   }
+
   // Add table key to the list
-static Future<void> addTableKey(String tableKey) async {
-  final prefs = await SharedPreferences.getInstance();
-  List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
-  if (!tableKeys.contains(tableKey)) {
-    tableKeys.add(tableKey);
-    await prefs.setStringList('table_keys', tableKeys);
+  static Future<void> addTableKey(String tableKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
+    if (!tableKeys.contains(tableKey)) {
+      tableKeys.add(tableKey);
+      await prefs.setStringList('table_keys', tableKeys);
+    }
   }
-}
 
 // Retrieve all saved table keys
-static Future<List<String>> getTableKeys() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getStringList('table_keys') ?? [];
-}
+  static Future<List<String>> getTableKeys() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('table_keys') ?? [];
+  }
 
 // Remove a table key from the list
-static Future<void> removeTableKey(String tableKey) async {
-  final prefs = await SharedPreferences.getInstance();
-  List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
-  tableKeys.remove(tableKey);
-  await prefs.setStringList('table_keys', tableKeys);
-}
-
+  static Future<void> removeTableKey(String tableKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> tableKeys = prefs.getStringList('table_keys') ?? [];
+    tableKeys.remove(tableKey);
+    await prefs.setStringList('table_keys', tableKeys);
+  }
 }

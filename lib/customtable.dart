@@ -44,7 +44,7 @@ class _CustomTableState extends State<CustomTable> {
     dataScrollController = controllerGroup.addAndGet();
     _initializeFocusNodes();
     _initializeControllers();
-    _loadTableData(); // Load data from SharedPreferences when the widget is initialized
+    _loadTableData();
     _saveTableKey();
   }
 
@@ -106,7 +106,6 @@ class _CustomTableState extends State<CustomTable> {
         for (int colIndex = 0;
             colIndex < savedDataWithMetadata[rowIndex].length;
             colIndex++) {
-          // Extract only the value from the saved metadata
           String cellValue =
               savedDataWithMetadata[rowIndex][colIndex]['value'] ?? '';
           controllers[rowIndex][colIndex].text = cellValue;
@@ -149,8 +148,8 @@ class _CustomTableState extends State<CustomTable> {
               'length': length,
               'width': width,
               'thickness': thickness,
-              'category': widget.categoryName, // Add category name to metadata
-              'woodType': widget.woodType, // Add wood type to metadata
+              'category': widget.categoryName,
+              'woodType': widget.woodType,
             };
           } else {
             return {
@@ -158,24 +157,21 @@ class _CustomTableState extends State<CustomTable> {
               'length': 0.0,
               'width': 0.0,
               'thickness': 0.0,
-              'category': widget.categoryName, // Default category name
-              'woodType': widget.woodType, // Default wood type
+              'category': widget.categoryName,
+              'woodType': widget.woodType,
             };
           }
         },
       );
     });
 
-    // Filter out the data that has a non-empty 'value'
     List<List<Map<String, dynamic>>> nonEmptyData = tableDataWithLengthWidth
         .map((row) => row.where((cell) => cell['value'] != '').toList())
         .where((row) => row.isNotEmpty)
         .toList();
 
-    // Print only the non-empty data
     print(nonEmptyData);
 
-    // Now save this table data into SharedPreferences
     await SharedPreferencesHelper.saveTableDataWithMetadata(
         tableKey, tableDataWithLengthWidth);
   }
@@ -191,14 +187,14 @@ class _CustomTableState extends State<CustomTable> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog without clearing
+                Navigator.of(context).pop();
               },
               child: Text('Cancel', style: TextStyle(color: Colors.black38)),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                _clearData(); // Proceed to clear the data
+                Navigator.of(context).pop();
+                _clearData();
               },
               child: Text('Clear', style: TextStyle(color: Colors.red)),
             ),
@@ -210,7 +206,7 @@ class _CustomTableState extends State<CustomTable> {
 
   void _clearData() async {
     await SharedPreferencesHelper.clearTableData(tableKey);
-    await SharedPreferencesHelper.removeTableKey(tableKey); // Remove key
+    await SharedPreferencesHelper.removeTableKey(tableKey);
 
     setState(() {
       // Reset the controllers to empty
@@ -238,7 +234,6 @@ class _CustomTableState extends State<CustomTable> {
           final evaluator = ExpressionEvaluator();
           final result = evaluator.eval(expression, {});
 
-          // Store the original expression and calculated result
           originalExpressions[rowIndex][colIndex] = trimmedText;
           controllers[rowIndex][colIndex].text = "$result ($trimmedText)";
         } else {
@@ -274,9 +269,8 @@ class _CustomTableState extends State<CustomTable> {
           IconButton(
             icon: Icon(Icons.clear_all),
             onPressed: () {
-              _showConfirmationDialog(context); // Show confirmation dialog
+              _showConfirmationDialog(context);
             },
-            // Clear the data when the button is pressed
           ),
         ],
       ),
@@ -394,7 +388,7 @@ class _CustomTableState extends State<CustomTable> {
                                               textInputAction:
                                                   TextInputAction.next,
                                               onChanged: (_) {
-                                                _saveTableData(); // Automatically save data when text changes
+                                                _saveTableData();
                                                 _saveTableDataWithLengthAndWidth();
                                               },
                                               onSubmitted: (_) {

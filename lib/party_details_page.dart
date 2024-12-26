@@ -16,9 +16,8 @@ class PartyDetailsPage extends StatelessWidget {
     final Uri callUri = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(callUri)) {
       await launchUrl(callUri);
-      _saveCallDetails(number); // Save the number after making the call
+      _saveCallDetails(number);
     } else {
-      // ignore: avoid_print
       print('Could not launch $callUri');
     }
   }
@@ -37,42 +36,46 @@ class PartyDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Check and format the email
-    final String displayedEmail = party.email == "No email address provided"
-        ? party.email
-        : party.email.toLowerCase();
-
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.teal,
         title: Row(
           children: [
             CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
-              child: Icon(Icons.person, color: Colors.teal),
+              radius: 20,
+              backgroundColor: Colors.grey.shade300,
+              child: Icon(
+                Icons.person,
+                color: Colors.grey.shade800,
+              ),
             ),
             SizedBox(width: 10),
             Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  party.name.toUpperCase(),
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                Text(
-                  displayedEmail, // Display the formatted email
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  party.name
+                      .split(' ')
+                      .map((word) => word.isNotEmpty
+                          ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+                          : '')
+                      .join(' '),
+                  style: TextStyle(fontSize: 16),
                 ),
               ],
             ),
           ],
         ),
-        iconTheme:
-            IconThemeData(color: Colors.white), // Makes the back arrow white
+        leading: IconButton(
+          icon: Icon(
+            Icons.chevron_left,
+            size: 30,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.phone, color: Colors.white),
+            icon: Icon(Icons.phone_outlined),
             onPressed: () => _makeCall(party.number),
           ),
         ],
@@ -86,54 +89,59 @@ class PartyDetailsPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LoadPage(
-                            partyName: party.name, // New page for table preview
+                  child: SizedBox(
+                    height: 70,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoadPage(
+                              partyName: party.name,
+                            ),
                           ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.brown,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ),
-                    child: Text(
-                      'LOAD',
-                      style: TextStyle(
-                        color: Colors.white,
+                      child: Text(
+                        'LOAD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 SizedBox(width: 10),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Handle SEND ORDER action for this specific party
-                      _sendOrder();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  child: SizedBox(
+                    height: 70,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _sendOrder();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 49, 83, 11),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'SEND ORDER',
-                      style: TextStyle(color: Colors.white),
+                      child: Text(
+                        'SEND ORDER',
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          // Optionally show last called number from local storage
           FutureBuilder<String?>(
             future: _getLastCalledNumber(),
             builder: (context, snapshot) {
@@ -154,9 +162,8 @@ class PartyDetailsPage extends StatelessWidget {
     );
   }
 
-  // Handle sending the order for the specific party
+  // Handling send order for the specific party
   void _sendOrder() {
-    // You can implement the logic to send the order, specific to the party
     print('Order sent for ${party.name}');
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cft_calculator/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -39,7 +40,8 @@ class _HomeState extends State<Home> {
   // Save parties to shared preferences
   Future<void> _saveParties() async {
     final prefs = await SharedPreferences.getInstance();
-    final String encodedParties = json.encode(_parties.map((party) => party.toJson()).toList());
+    final String encodedParties =
+        json.encode(_parties.map((party) => party.toJson()).toList());
     await prefs.setString('parties', encodedParties);
   }
 
@@ -63,23 +65,18 @@ class _HomeState extends State<Home> {
       appBar: AppBar(
         title: const Text(
           'Home',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-          ),
         ),
-        backgroundColor: Colors.teal,
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
-              width: MediaQuery.of(context).size.width - 40,
-              height: 250,
-              margin: const EdgeInsets.all(20),
+              width: MediaQuery.of(context).size.width - 32,
+              height: 300,
+              margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Center(
                 child: Text(
@@ -89,20 +86,21 @@ class _HomeState extends State<Home> {
               ),
             ),
             Container(
-              margin: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 0.5),
-                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.only(left: 10.0),
+                    padding: EdgeInsets.only(left: 14.0),
                     child: Text(
-                      'PARTY LEDGER',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      'Party Ledger',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                     ),
                   ),
                   ListView.builder(
@@ -112,29 +110,39 @@ class _HomeState extends State<Home> {
                     itemBuilder: (context, index) {
                       final party = _parties[index];
                       final String displayedEmail =
-                          party.email == "No email address provided"
-                              ? party.email
+                          (party.email == "No email address provided" ||
+                                  party.email.isEmpty)
+                              ? party.number
                               : party.email.toLowerCase();
                       return ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.teal, width: 2),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: const Icon(
-                            Icons.person_outline_outlined,
-                            color: Colors.teal,
+                        leading: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.grey.shade300,
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.grey.shade800,
                           ),
                         ),
-                        title: Text(party.name.toUpperCase()),
-                        subtitle: Text(displayedEmail),
+                        title: Text(
+                          party.name
+                              .split(' ')
+                              .map((word) => word.isNotEmpty
+                                  ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
+                                  : '')
+                              .join(' '),
+                          style: TextStyle(
+                              color: Colors.black, fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          displayedEmail,
+                          style: TextStyle(color: Colors.black54),
+                        ),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => PartyDetailsPage(
-                                party: party,  // Passing the entire Party object
+                                party: party,
                               ),
                             ),
                           );
@@ -186,6 +194,7 @@ class _HomeState extends State<Home> {
           ),
         ),
       ),
+      bottomNavigationBar: CustomBottomNavigationBar(),
     );
   }
 }

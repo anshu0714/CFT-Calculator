@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+// Stateful widget to add a new party
 class AddPartyPage extends StatefulWidget {
+  // Callback function to handle the addition of a party
   final void Function(String name, String number, String email) onAddParty;
 
   const AddPartyPage({super.key, required this.onAddParty});
@@ -10,20 +12,24 @@ class AddPartyPage extends StatefulWidget {
 }
 
 class _AddPartyPageState extends State<AddPartyPage> {
+  // Text controllers to handle user input
   final _nameController = TextEditingController();
   final _numberController = TextEditingController();
   final _emailController = TextEditingController();
 
-  final _formKey = GlobalKey<FormState>(); // Form key for validation
+  // Form key to validate the input fields
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
+    // Dispose controllers to free up resources
     _nameController.dispose();
     _numberController.dispose();
     _emailController.dispose();
     super.dispose();
   }
 
+  // Validation for the name field
   String? _validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Name cannot be empty';
@@ -31,6 +37,7 @@ class _AddPartyPageState extends State<AddPartyPage> {
     return null;
   }
 
+  // Validation for the number field
   String? _validateNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Number cannot be empty';
@@ -39,15 +46,15 @@ class _AddPartyPageState extends State<AddPartyPage> {
       return 'Number should contain only digits';
     }
     if (value.length != 10) {
-      // Ensure the length is exactly 10
       return 'Number should be 10 digits long';
     }
-    return null; // No error if all checks pass
+    return null;
   }
 
+  // Validation for the email field (optional)
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return null; // Allow empty email
+      return null; // Email is optional
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
       return 'Enter a valid email';
@@ -73,6 +80,7 @@ class _AddPartyPageState extends State<AddPartyPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Input field for party name
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -87,9 +95,10 @@ class _AddPartyPageState extends State<AddPartyPage> {
                     borderSide: BorderSide(color: Colors.teal, width: 2),
                   ),
                 ),
-                validator: _validateName, // Name validation
+                validator: _validateName,
               ),
               const SizedBox(height: 15),
+              // Input field for contact number
               TextFormField(
                 controller: _numberController,
                 decoration: InputDecoration(
@@ -105,9 +114,10 @@ class _AddPartyPageState extends State<AddPartyPage> {
                   ),
                 ),
                 keyboardType: TextInputType.phone,
-                validator: _validateNumber, // Number validation
+                validator: _validateNumber,
               ),
               const SizedBox(height: 15),
+              // Input field for email (optional)
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -123,19 +133,23 @@ class _AddPartyPageState extends State<AddPartyPage> {
                   ),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail, // Email validation
+                validator: _validateEmail,
               ),
               const SizedBox(height: 30),
+              // Button to submit the form
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    // If form is valid, add the party
                     widget.onAddParty(
                       _nameController.text.trim(),
                       _numberController.text.trim(),
                       _emailController.text.trim().isEmpty
                           ? 'No email address provided'
                           : _emailController.text.trim(),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Party added successfully!')),
                     );
                   }
                 },

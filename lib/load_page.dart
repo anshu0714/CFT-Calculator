@@ -1,12 +1,13 @@
 import 'package:cft_calculator/shared_preferences_helper.dart';
 import 'package:cft_calculator/sort_and_load_page.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // For encoding and decoding JSON
+import 'dart:convert';
 import 'customtable.dart';
 
 class LoadPage extends StatefulWidget {
-  final String partyName; // Party name to differentiate the data
+  final String partyName;
 
   const LoadPage({super.key, required this.partyName});
 
@@ -18,28 +19,26 @@ class LoadPageState extends State<LoadPage> {
   // List to store dynamically added sheets
   List<Widget> sheets = [];
   List<String> categories = ["Patia", "Pava", "Create a New Category"];
-  List<String> woodTypes = ["Kikar", "Sheesham", "Babool"]; // Wood types
+  List<String> woodTypes = ["Kikar", "Sheesham", "Babool"];
 
   @override
   void initState() {
     super.initState();
-    _loadSheets(); // Load saved sheets when the page is initialized
+    _loadSheets();
   }
 
   // Load sheets from SharedPreferences using the party name as a key
   Future<void> _loadSheets() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? savedSheets =
-        prefs.getString(widget.partyName); // Use partyName as key
+    final String? savedSheets = prefs.getString(widget.partyName);
     if (savedSheets != null) {
-      // Decode the saved JSON data into a list of sheet data
       List<dynamic> sheetList = json.decode(savedSheets);
       setState(() {
         sheets = sheetList.map((sheetData) {
           return CustomTable(
             tableThickness: sheetData['thickness'],
             categoryName: sheetData['category'],
-            woodType: sheetData['woodType'], // Add wood type
+            woodType: sheetData['woodType'],
             partyName: widget.partyName,
           );
         }).toList();
@@ -50,16 +49,13 @@ class LoadPageState extends State<LoadPage> {
   void _removeSheet(int index) async {
     final CustomTable sheet = sheets[index] as CustomTable;
     final String tableKey =
-        "${widget.partyName}_${sheet.categoryName}_${sheet.tableThickness}";
+        "${sheet.tableThickness}_${sheet.categoryName}_${sheet.woodType}_${widget.partyName}";
 
     setState(() {
       sheets.removeAt(index);
     });
 
-    // Clear the associated table data from SharedPreferences
     await SharedPreferencesHelper.clearTableData(tableKey);
-
-    // Remove the table key from the list of table keys
     await SharedPreferencesHelper.removeTableKey(tableKey);
 
     // Save the updated list of sheets
@@ -73,13 +69,42 @@ class LoadPageState extends State<LoadPage> {
       return {
         'thickness': (sheet as CustomTable).tableThickness,
         'category': (sheet).categoryName,
-        'woodType': (sheet).woodType, // Save wood type
+        'woodType': (sheet).woodType,
       };
     }).toList();
 
     String encodedSheets = json.encode(sheetData);
-    await prefs.setString(widget.partyName,
-        encodedSheets); // Save data with the party name as the key
+    await prefs.setString(widget.partyName, encodedSheets);
+  }
+
+  void _showDeleteConfirmationDialog(int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Confirm Deletion"),
+          content: Text("Are you sure you want to delete this sheet?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _removeSheet(index);
+              },
+              child: Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -87,8 +112,15 @@ class LoadPageState extends State<LoadPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Load Page - ${widget.partyName}"),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(
+            Icons.chevron_left,
+            size: 30,
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: Stack(
         children: [
@@ -97,143 +129,197 @@ class LoadPageState extends State<LoadPage> {
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.all(20),
-                  itemCount:
-                      sheets.length + 1, // Add one for the "Add Sheet" button
+                  itemCount: sheets.length + 1,
                   itemBuilder: (context, index) {
                     if (index < sheets.length) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Sheet ${index + 1}",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(255, 61, 61, 61),
+                            border: Border.all(
+                                color: const Color.fromARGB(255, 61, 61, 61),
+                                width: 2),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CustomTable(
+                                        tableThickness:
+                                            (sheets[index] as CustomTable)
+                                                .tableThickness,
+                                        categoryName:
+                                            (sheets[index] as CustomTable)
+                                                .categoryName,
+                                        woodType: (sheets[index] as CustomTable)
+                                            .woodType,
+                                        partyName: widget.partyName,
+                                      ),
+                                    ),
+                                  ).then((_) {
+                                    // Trigger a rebuild when returning from CustomTable
+                                    setState(() {
+                                      _loadSheets();
+                                    });
+                                  });
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                                  clipBehavior: Clip.hardEdge,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                        color: Colors.grey, width: 0),
+                                    borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(5),
+                                        topRight: Radius.circular(5)),
+                                  ),
+                                  child: sheets[index],
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    _removeSheet(index); // Remove sheet
-                                  },
-                                ),
-                              ],
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                // Navigate to the full sheet view by accessing the sheet directly
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CustomTable(
-                                      tableThickness:
-                                          (sheets[index] as CustomTable)
-                                              .tableThickness,
-                                      categoryName:
-                                          (sheets[index] as CustomTable)
-                                              .categoryName,
-                                      woodType: (sheets[index] as CustomTable)
-                                          .woodType, // Pass wood type
-                                      partyName: widget.partyName,
+                              ),
+                              SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 10),
+                                    child: Text(
+                                      "Sheet ${index + 1}",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white),
                                     ),
                                   ),
-                                ).then((_) {
-                                  // Trigger a rebuild when returning from CustomTable
-                                  setState(() {
-                                    _loadSheets(); // Reload sheets after edit
-                                  });
-                                });
-                              },
-                              child: Container(
-                                margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
-                                clipBehavior: Clip.hardEdge,
-                                height: 250,
-                                decoration: BoxDecoration(
-                                  border:
-                                      Border.all(color: Colors.grey, width: 2),
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: sheets[index], // Non-editable preview
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      _showDeleteConfirmationDialog(index);
+                                    },
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       );
                     } else {
-                      return ElevatedButton(
-                        onPressed: () {
-                          _showAddSheetDialog();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: Text(
-                          "Add Sheet".toUpperCase(),
-                          style: TextStyle(
+                      return Container(
+                        margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                        height: 200,
+                        width: MediaQuery.of(context).size.width,
+                        child: DottedBorder(
+                          borderType: BorderType.RRect,
+                          strokeWidth: 2,
+                          dashPattern: [8, 4],
+                          radius: Radius.circular(5),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: Container(
+                              width: double.infinity,
                               color: Colors.white,
-                              fontSize: 16,
-                              letterSpacing: 0.5),
+                              child: TextButton(
+                                onPressed: () {
+                                  _showAddSheetDialog();
+                                },
+                                style: TextButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_circle_rounded,
+                                      color: Colors.black,
+                                      size: 70,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      "Add Sheet".toUpperCase(),
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 24,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       );
                     }
                   },
                 ),
               ),
-              SizedBox(height: 80), // To ensure space for the bottom button
+              SizedBox(height: 80),
             ],
           ),
           Positioned(
             bottom: 20,
             left: 20,
             right: 20,
-            child: ElevatedButton(
-              onPressed: () {
-                // Check if there are any sheets in the list
-                if (sheets.isNotEmpty) {
-                  // Merge data from all sheets into a single list
-                  List<Map<String, String>> mergedSheetData =
-                      sheets.map((sheet) {
-                    return {
-                      'thickness': (sheet as CustomTable).tableThickness,
-                      'category': (sheet).categoryName,
-                      'woodType': (sheet).woodType,
-                      'partyName':
-                          widget.partyName, // Add the party name if needed
-                    };
-                  }).toList();
+            child: SizedBox(
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (sheets.isNotEmpty) {
+                    List<Map<String, String>> mergedSheetData =
+                        sheets.map((sheet) {
+                      return {
+                        'thickness': (sheet as CustomTable).tableThickness,
+                        'category': (sheet).categoryName,
+                        'woodType': (sheet).woodType,
+                        'partyName': widget.partyName,
+                      };
+                    }).toList();
 
-                  // Pass the merged data to SortAndLoadPage
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SortAndLoadPage(
-                        mergedSheetData:
-                            mergedSheetData, // Pass the merged data
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SortAndLoadPage(
+                          mergedSheetData: mergedSheetData,
+                        ),
                       ),
-                    ),
-                  ).then((_) {
-                    // Trigger a rebuild after returning from SortAndLoadPage
-                    setState(() {
-                      _loadSheets();
+                    ).then((_) {
+                      // Trigger a rebuild after returning from SortAndLoadPage
+                      setState(() {
+                        _loadSheets();
+                      });
                     });
-                  });
-                } else {
-                  // Optionally show a message if there are no sheets added
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Please add a sheet first!")),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
-                padding: EdgeInsets.symmetric(vertical: 10),
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Please add a sheet first!")),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                ),
+                child: Text("Sort & Load".toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 20,
+                        letterSpacing: 0.5,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold)),
               ),
-              child: Text("Sort & Load".toUpperCase(),
-                  style: TextStyle(
-                      color: Colors.white, fontSize: 16, letterSpacing: 0.5)),
             ),
           ),
         ],
@@ -244,7 +330,7 @@ class LoadPageState extends State<LoadPage> {
   // Dialog for adding a new sheet
   void _showAddSheetDialog() {
     String? selectedCategory;
-    String? selectedWoodType; // For the selected wood type
+    String? selectedWoodType;
     TextEditingController thicknessController = TextEditingController();
     TextEditingController newCategoryController = TextEditingController();
     bool showNewCategoryField = false;
@@ -311,7 +397,7 @@ class LoadPageState extends State<LoadPage> {
                   },
                   child: Text(
                     "Cancel",
-                    style: TextStyle(color: Colors.teal),
+                    style: TextStyle(color: Colors.red),
                   ),
                 ),
                 TextButton(
@@ -336,14 +422,12 @@ class LoadPageState extends State<LoadPage> {
                         sheets.add(CustomTable(
                           tableThickness: thicknessController.text,
                           categoryName: selectedCategory!,
-                          woodType: selectedWoodType!, // Add wood type
+                          woodType: selectedWoodType!,
                           partyName: widget.partyName,
                         ));
                       });
 
-                      _saveSheets(); // Save the updated list of sheets
-
-                      // Close the dialog after adding the sheet
+                      _saveSheets();
                       Navigator.pop(context);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -357,7 +441,7 @@ class LoadPageState extends State<LoadPage> {
                   },
                   child: Text(
                     "Add",
-                    style: TextStyle(color: Colors.teal),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ),
               ],
