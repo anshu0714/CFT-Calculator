@@ -1,5 +1,5 @@
 import 'package:cft_calculator/shared_preferences_helper.dart';
-import 'package:cft_calculator/sort_and_load_page.dart';
+import 'package:cft_calculator/sort_load_page.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -290,7 +290,7 @@ class LoadPageState extends State<LoadPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => SortAndLoadPage(
+                        builder: (context) => SortLoadPage(
                           mergedSheetData: mergedSheetData,
                         ),
                       ),
